@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Airport Weather Dashboard</title>
+    <style>
+        body { font-family: Arial; max-width: 900px; margin: 0 auto; padding: 20px; background: #f0f8ff; }
+        .dashboard { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 15px #b3d9ff; }
+        .form-group { margin: 15px 0; }
+        button { padding: 10px 20px; background: #1e88e5; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .alert { color: #d32f2f; font-weight: bold; padding: 10px; background: #ffebee; border-radius: 5px; }
+        #currentWeather { background: #e3f2fd; padding: 20px; border-radius: 5px; margin-top: 25px; }
+        h1 { color: #0d47a1; }
+        .timestamp { color: #546e7a; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <h1>✈️ Airport Weather Dashboard</h1>
+        
+        <!-- Data Entry Form -->
+        <div class="form-group">
+            <label><strong>Condition:</strong></label>
+            <select id="condition">
+                <option value="☀️">☀️ Clear</option>
+                <option value="⛅">⛅ Partly Cloudy</option>
+                <option value="☁️">☁️ Cloudy</option>
+                <option value="🌧️">🌧️ Rain</option>
+                <option value="⚡">⚡ Thunderstorm</option>
+                <option value="🌫️">🌫️ Fog</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label><strong>Temperature (°C):</strong></label>
+            <input type="number" id="temp" placeholder="28">
+        </div>
+        
+        <div class="form-group">
+            <label><strong>Wind (kt):</strong></label>
+            <input type="text" id="windSpeed" placeholder="8" style="width: 50px;">
+            <select id="windDirection">
+                <option value="↓">↓ N</option>
+                <option value="↘">↘ NE</option>
+                <option value="→">→ E</option>
+                <option value="↗">↗ SE</option>
+                <option value="↑">↑ S</option>
+                <option value="↖">↖ SW</option>
+                <option value="←">← W</option>
+                <option value="↙">↙ NW</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label><strong>Visibility (km):</strong></label>
+            <input type="number" id="visibility" placeholder="10">
+        </div>
+        
+        <div class="form-group">
+            <label><strong>Runway Status:</strong></label>
+            <input type="text" id="runway" placeholder="07R/25L: Dry, 07L/25R: Wet">
+        </div>
+        
+        <button onclick="updateWeather()">Update Dashboard</button>
+        
+        <!-- Display Area -->
+        <div id="currentWeather">
+            <h2>CURRENT CONDITIONS</h2>
+            <p id="displayCondition">☀️ Clear</p>
+            <p>Temperature: <span id="displayTemp">28</span>°C</p>
+            <p>Wind: <span id="displayWind">8kt ↓ N</span></p>
+            <p>Visibility: <span id="displayVis">10</span>km</p>
+            <p>Runway: <span id="displayRunway">07R/25L: Dry, 07L/25R: Wet</span></p>
+            <p id="alertDisplay" class="alert"></p>
+            <small class="timestamp">Last updated: <span id="timestamp">Not updated yet</span></small>
+        </div>
+    </div>
+
+    <script>
+        // Load saved data
+        function loadSavedData() {
+            if(localStorage.getItem('weatherData')) {
+                const data = JSON.parse(localStorage.getItem('weatherData'));
+                document.getElementById('condition').value = data.condition || '☀️';
+                document.getElementById('temp').value = data.temp || '28';
+                document.getElementById('windSpeed').value = data.windSpeed || '8';
+                document.getElementById('windDirection').value = data.windDirection || '↓';
+                document.getElementById('visibility').value = data.visibility || '10';
+                document.getElementById('runway').value = data.runway || '07R/25L: Dry, 07L/25R: Wet';
+                updateDisplay(data);
+            } else {
+                // Set default values
+                const defaultData = {
+                    condition: '☀️',
+                    temp: '28',
+                    windSpeed: '8',
+                    windDirection: '↓',
+                    visibility: '10',
+                    runway: '07R/25L: Dry, 07L/25R: Wet',
+                    timestamp: 'Initial setup'
+                };
+                updateDisplay(defaultData);
+            }
+        }
+        
+        // Update display
+        function updateWeather() {
+            const data = {
+                condition: document.getElementById('condition').value,
+                temp: document.getElementById('temp').value,
+                windSpeed: document.getElementById('windSpeed').value,
+                windDirection: document.getElementById('windDirection').value,
+                visibility: document.getElementById('visibility').value,
+                runway: document.getElementById('runway').value,
+                timestamp: new Date().toLocaleTimeString()
+            };
+            
+            // Save to browser
+            localStorage.setItem('weatherData', JSON.stringify(data));
+            
+            // Update display
+            updateDisplay(data);
+            
+            // Check alerts
+            checkAlerts(data);
+        }
+        
+        function updateDisplay(data) {
+            document.getElementById('displayCondition').innerHTML = `${data.condition} ${getConditionText(data.condition)}`;
+            document.getElementById('displayTemp').innerHTML = data.temp;
+            document.getElementById('displayWind').innerHTML = `${data.windSpeed}kt ${data.windDirection} ${getWindText(data.windDirection)}`;
+            document.getElementById('displayVis').innerHTML = data.visibility;
+            document.getElementById('displayRunway').innerHTML = data.runway;
+            document.getElementById('timestamp').innerHTML = data.timestamp;
+        }
+        
+        function checkAlerts(data) {
+            let alert = '';
+            const visibility = parseInt(data.visibility);
+            const windSpeed = parseInt(data.windSpeed);
+            
+            if(visibility < 3) alert = 'LOW VISIBILITY ALERT: Notify ATC';
+            if(data.condition === '⚡') alert = 'THUNDERSTORM ALERT: Ground stop advised';
+            if(windSpeed > 25) alert = 'HIGH WIND ALERT: Crosswind check required';
+            if(!alert) alert = 'No alerts - Normal operations';
+            
+            document.getElementById('alertDisplay').innerHTML = alert;
+        }
+        
+        function getConditionText(icon) {
+            const conditions = {
+                '☀️': 'Clear', '⛅': 'Partly Cloudy', '☁️': 'Cloudy',
+                '🌧️': 'Rain', '⚡': 'Thunderstorm', '🌫️': 'Fog'
+            };
+            return conditions[icon];
+        }
+        
+        function getWindText(dir) {
+            const directions = {
+                '↓': 'N', '↘': 'NE', '→': 'E', '↗': 'SE',
+                '↑': 'S', '↖': 'SW', '←': 'W', '↙': 'NW'
+            };
+            return directions[dir];
+        }
+        
+        // Load saved data on start
+        window.onload = loadSavedData;
+    </script>
+</body>
+</html>
