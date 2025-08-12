@@ -1,169 +1,167 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Airport Weather Dashboard</title>
+    <title>3D Weather Dashboard</title>
     <style>
-        body { font-family: Arial; max-width: 900px; margin: 0 auto; padding: 20px; background: #f0f8ff; }
-        .dashboard { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 15px #b3d9ff; }
-        .form-group { margin: 15px 0; }
-        button { padding: 10px 20px; background: #1e88e5; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        .alert { color: #d32f2f; font-weight: bold; padding: 10px; background: #ffebee; border-radius: 5px; }
-        #currentWeather { background: #e3f2fd; padding: 20px; border-radius: 5px; margin-top: 25px; }
-        h1 { color: #0d47a1; }
-        .timestamp { color: #546e7a; font-size: 0.9em; }
+        body { 
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f0f8ff;
+        }
+        .dashboard-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .weather-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        .weather-card:hover {
+            transform: translateY(-5px);
+        }
+        #weather-visualization {
+            width: 100%;
+            height: 500px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
-    <div class="dashboard">
-        <h1>✈️ Airport Weather Dashboard</h1>
+    <div class="dashboard-container">
+        <h1>3D Weather Visualization Dashboard</h1>
         
-        <!-- Data Entry Form -->
-        <div class="form-group">
-            <label><strong>Condition:</strong></label>
-            <select id="condition">
-                <option value="☀️">☀️ Clear</option>
-                <option value="⛅">⛅ Partly Cloudy</option>
-                <option value="☁️">☁️ Cloudy</option>
-                <option value="🌧️">🌧️ Rain</option>
-                <option value="⚡">⚡ Thunderstorm</option>
-                <option value="🌫️">🌫️ Fog</option>
-            </select>
+        <!-- Clickable Weather Card -->
+        <div class="weather-card" onclick="toggle3DView()">
+            <h2>Current Weather Conditions</h2>
+            <div id="weather-summary">
+                <p>☁️ Condition: Cloudy</p>
+                <p>🌡️ Temperature: 28°C</p>
+                <p>🌬️ Wind: 8kt ↓ N</p>
+                <p>👀 Visibility: 10km</p>
+                <p>🛫 Runway Status: 07R/25L: Dry, 07L/25R: Wet</p>
+            </div>
+            <p><em>Click anywhere on this card to view 3D visualization</em></p>
         </div>
         
-        <div class="form-group">
-            <label><strong>Temperature (°C):</strong></label>
-            <input type="number" id="temp" placeholder="28">
+        <!-- 3D Visualization Container -->
+        <div id="weather-visualization" class="hidden">
+            <!-- Three.js 3D Weather Visualization -->
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+            <script>
+                let scene, camera, renderer, cloudParticles = [];
+                
+                function init3DWeather() {
+                    // Scene setup
+                    scene = new THREE.Scene();
+                    scene.background = new THREE.Color(0x87CEEB);
+                    
+                    // Camera setup
+                    camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 1, 1000);
+                    camera.position.z = 1;
+                    
+                    // Renderer setup
+                    renderer = new THREE.WebGLRenderer({ antialias: true });
+                    renderer.setSize(document.getElementById('weather-visualization').clientWidth, 
+                                    document.getElementById('weather-visualization').clientHeight);
+                    document.getElementById('weather-visualization').appendChild(renderer.domElement);
+                    
+                    // Add sunlight
+                    const ambient = new THREE.AmbientLight(0x555555);
+                    scene.add(ambient);
+                    
+                    const directionalLight = new THREE.DirectionalLight(0xffeedd);
+                    directionalLight.position.set(0, 1, 0);
+                    scene.add(directionalLight);
+                    
+                    // Create clouds
+                    const loader = new THREE.TextureLoader();
+                    loader.load("https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/sprites/cloud.png", function(texture) {
+                        const cloudGeo = new THREE.PlaneBufferGeometry(500, 500);
+                        const cloudMaterial = new THREE.MeshLambertMaterial({
+                            map: texture,
+                            transparent: true
+                        });
+                        
+                        for (let p = 0; p < 10; p++) {
+                            const cloud = new THREE.Mesh(cloudGeo, cloudMaterial);
+                            cloud.position.set(
+                                Math.random() * 800 - 400,
+                                100 + Math.random() * 200,
+                                Math.random() * 500 - 250
+                            );
+                            cloud.rotation.x = 1.16;
+                            cloud.rotation.y = -0.12;
+                            cloud.rotation.z = Math.random() * 2 * Math.PI;
+                            cloud.material.opacity = 0.6;
+                            scene.add(cloud);
+                            cloudParticles.push(cloud);
+                        }
+                        animate();
+                    });
+                    
+                    // Add rain (if needed)
+                    // ... (rain effect code would go here)
+                    
+                    window.addEventListener('resize', onWindowResize, false);
+                }
+                
+                function animate() {
+                    cloudParticles.forEach(p => {
+                        p.rotation.z -= 0.002;
+                    });
+                    renderer.render(scene, camera);
+                    requestAnimationFrame(animate);
+                }
+                
+                function onWindowResize() {
+                    camera.aspect = document.getElementById('weather-visualization').clientWidth / 
+                                     document.getElementById('weather-visualization').clientHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(document.getElementById('weather-visualization').clientWidth, 
+                                    document.getElementById('weather-visualization').clientHeight);
+                }
+            </script>
         </div>
         
-        <div class="form-group">
-            <label><strong>Wind (kt):</strong></label>
-            <input type="text" id="windSpeed" placeholder="8" style="width: 50px;">
-            <select id="windDirection">
-                <option value="↓">↓ N</option>
-                <option value="↘">↘ NE</option>
-                <option value="→">→ E</option>
-                <option value="↗">↗ SE</option>
-                <option value="↑">↑ S</option>
-                <option value="↖">↖ SW</option>
-                <option value="←">← W</option>
-                <option value="↙">↙ NW</option>
-            </select>
-        </div>
-        
-        <div class="form-group">
-            <label><strong>Visibility (km):</strong></label>
-            <input type="number" id="visibility" placeholder="10">
-        </div>
-        
-        <div class="form-group">
-            <label><strong>Runway Status:</strong></label>
-            <input type="text" id="runway" placeholder="07R/25L: Dry, 07L/25R: Wet">
-        </div>
-        
-        <button onclick="updateWeather()">Update Dashboard</button>
-        
-        <!-- Display Area -->
-        <div id="currentWeather">
-            <h2>CURRENT CONDITIONS</h2>
-            <p id="displayCondition">☀️ Clear</p>
-            <p>Temperature: <span id="displayTemp">28</span>°C</p>
-            <p>Wind: <span id="displayWind">8kt ↓ N</span></p>
-            <p>Visibility: <span id="displayVis">10</span>km</p>
-            <p>Runway: <span id="displayRunway">07R/25L: Dry, 07L/25R: Wet</span></p>
-            <p id="alertDisplay" class="alert"></p>
-            <small class="timestamp">Last updated: <span id="timestamp">Not updated yet</span></small>
-        </div>
+        <!-- Standard Link -->
+        <a href="https://bg300777.github.io/weather-dashboard/" target="_blank" 
+           style="display: inline-block; margin-top: 20px; padding: 10px 15px; 
+                  background: #4CAF50; color: white; text-decoration: none; border-radius: 5px;">
+            Open Full Dashboard in New Tab
+        </a>
     </div>
 
     <script>
-        // Load saved data
-        function loadSavedData() {
-            if(localStorage.getItem('weatherData')) {
-                const data = JSON.parse(localStorage.getItem('weatherData'));
-                document.getElementById('condition').value = data.condition || '☀️';
-                document.getElementById('temp').value = data.temp || '28';
-                document.getElementById('windSpeed').value = data.windSpeed || '8';
-                document.getElementById('windDirection').value = data.windDirection || '↓';
-                document.getElementById('visibility').value = data.visibility || '10';
-                document.getElementById('runway').value = data.runway || '07R/25L: Dry, 07L/25R: Wet';
-                updateDisplay(data);
+        // Toggle 3D view
+        function toggle3DView() {
+            const visElement = document.getElementById('weather-visualization');
+            const summaryElement = document.getElementById('weather-summary');
+            
+            if (visElement.classList.contains('hidden')) {
+                visElement.classList.remove('hidden');
+                summaryElement.style.display = 'none';
+                init3DWeather();
             } else {
-                // Set default values
-                const defaultData = {
-                    condition: '☀️',
-                    temp: '28',
-                    windSpeed: '8',
-                    windDirection: '↓',
-                    visibility: '10',
-                    runway: '07R/25L: Dry, 07L/25R: Wet',
-                    timestamp: 'Initial setup'
-                };
-                updateDisplay(defaultData);
+                visElement.classList.add('hidden');
+                summaryElement.style.display = 'block';
             }
         }
         
-        // Update display
-        function updateWeather() {
-            const data = {
-                condition: document.getElementById('condition').value,
-                temp: document.getElementById('temp').value,
-                windSpeed: document.getElementById('windSpeed').value,
-                windDirection: document.getElementById('windDirection').value,
-                visibility: document.getElementById('visibility').value,
-                runway: document.getElementById('runway').value,
-                timestamp: new Date().toLocaleTimeString()
-            };
-            
-            // Save to browser
-            localStorage.setItem('weatherData', JSON.stringify(data));
-            
-            // Update display
-            updateDisplay(data);
-            
-            // Check alerts
-            checkAlerts(data);
-        }
-        
-        function updateDisplay(data) {
-            document.getElementById('displayCondition').innerHTML = `${data.condition} ${getConditionText(data.condition)}`;
-            document.getElementById('displayTemp').innerHTML = data.temp;
-            document.getElementById('displayWind').innerHTML = `${data.windSpeed}kt ${data.windDirection} ${getWindText(data.windDirection)}`;
-            document.getElementById('displayVis').innerHTML = data.visibility;
-            document.getElementById('displayRunway').innerHTML = data.runway;
-            document.getElementById('timestamp').innerHTML = data.timestamp;
-        }
-        
-        function checkAlerts(data) {
-            let alert = '';
-            const visibility = parseInt(data.visibility);
-            const windSpeed = parseInt(data.windSpeed);
-            
-            if(visibility < 3) alert = 'LOW VISIBILITY ALERT: Notify ATC';
-            if(data.condition === '⚡') alert = 'THUNDERSTORM ALERT: Ground stop advised';
-            if(windSpeed > 25) alert = 'HIGH WIND ALERT: Crosswind check required';
-            if(!alert) alert = 'No alerts - Normal operations';
-            
-            document.getElementById('alertDisplay').innerHTML = alert;
-        }
-        
-        function getConditionText(icon) {
-            const conditions = {
-                '☀️': 'Clear', '⛅': 'Partly Cloudy', '☁️': 'Cloudy',
-                '🌧️': 'Rain', '⚡': 'Thunderstorm', '🌫️': 'Fog'
-            };
-            return conditions[icon];
-        }
-        
-        function getWindText(dir) {
-            const directions = {
-                '↓': 'N', '↘': 'NE', '→': 'E', '↗': 'SE',
-                '↑': 'S', '↖': 'SW', '←': 'W', '↙': 'NW'
-            };
-            return directions[dir];
-        }
-        
-        // Load saved data on start
-        window.onload = loadSavedData;
+        // Make the entire card clickable as a link
+        document.querySelector('.weather-card').addEventListener('click', function() {
+            // Optional: window.location.href = "https://bg300777.github.io/weather-dashboard/";
+        });
     </script>
 </body>
 </html>
